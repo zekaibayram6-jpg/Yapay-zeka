@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AğAkademisi - Ağ Teknolojilerini Öğren</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+        }
+        .duo-card {
+            box-shadow: 0 4px 0 #e5e5e5;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .duo-card:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #e5e5e5;
+        }
+        .correct-card {
+            background-color: #d7ffb8;
+            border-color: #58cc02;
+            color: #58cc02;
+        }
+        .wrong-card {
+            background-color: #ffdfe0;
+            border-color: #ff4b4b;
+            color: #ff4b4b;
+        }
+        .progress-bar {
+            transition: width 0.3s ease-out;
+        }
+        .shake {
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+    </style>
+</head>
+<body class="bg-white min-h-screen flex flex-col">
+
+    <div id="app" class="flex-grow flex flex-col w-full max-w-2xl mx-auto px-4 py-6">
+        <!-- Burası dinamik olarak doldurulacak -->
+    </div>
+
+    <script>
+        const courses = [
+            {
+                id: 1,
+                title: "OSI Katmanları 101",
+                icon: "🌐",
+                questions: [
+                    {
+                        type: "choice",
+                        question: "Hangisi en alt katmandır (Katman 1)?",
+                        options: ["Uygulama", "Fiziksel", "Ağ", "Taşıma"],
+                        answer: 1
+                    },
+                    {
+                        type: "choice",
+                        question: "Router (Yönlendirici) hangi katmanda çalışır?",
+                        options: ["Fiziksel", "Veri Bağı", "Ağ", "Oturum"],
+                        answer: 2
+                    },
+                    {
+                        type: "choice",
+                        question: "HTTP ve FTP hangi katmanın protokolleridir?",
+                        options: ["Sunum", "Uygulama", "Taşıma", "Veri Bağı"],
+                        answer: 1
+                    }
+                ]
+            },
+            {
+                id: 2,
+                title: "IP ve Protokoller",
+                icon: "🛰️",
+                questions: [
+                    {
+                        type: "choice",
+                        question: "IPv4 adresi kaç bitten oluşur?",
+                        options: ["16 bit", "32 bit", "64 bit", "128 bit"],
+                        answer: 1
+                    },
+                    {
+                        type: "choice",
+                        question: "Bağlantısız (Unreliable) çalışan protokol hangisidir?",
+                        options: ["TCP", "HTTP", "UDP", "SSH"],
+                        answer: 2
+                    }
+                ]
+            }
+        ];
+
+        let state = {
+            screen: 'home', // 'home', 'quiz', 'result'
+            currentCourseIndex: 0,
+            currentQuestionIndex: 0,
+            health: 5,
+            progress: 0,
+            selectedOption: null,
+            isAnswerChecked: false,
+            isCorrect: false,
+            streak: 0
+        };
+
+        const app = document.getElementById('app');
+
+        function render() {
+            app.innerHTML = '';
+            
+            if (state.screen === 'home') {
+                renderHome();
+            } else if (state.screen === 'quiz') {
+                renderQuiz();
+            } else if (state.screen === 'result') {
+                renderResult();
+            }
+        }
+
+        function renderHome() {
+            app.innerHTML = `
+                <div class="flex flex-col items-center">
+                    <h1 class="text-3xl font-extrabold text-gray-800 mb-8 mt-4">Ağ Akademisi</h1>
+                    <div class="w-full space-y-4">
+                        ${courses.map((course, index) => `
+                            <div onclick="startCourse(${index})" class="duo-card cursor-pointer bg-white border-2 border-gray-200 rounded-2xl p-6 flex items-center space-x-4 hover:bg-gray-50">
+                                <span class="text-4xl">${course.icon}</span>
+                                <div class="flex-grow">
+                                    <h3 class="font-bold text-xl text-gray-700">${course.title}</h3>
+                                    <p class="text-gray-500 text-sm">${course.questions.length} Soru</p>
+                                </div>
+                                <div class="text-gray-300 font-bold text-2xl">➔</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="mt-12 p-6 bg-blue-50 border-2 border-blue-200 rounded-2xl text-center w-full">
+                        <p class="text-blue-600 font-semibold italic">"Ağlar dünyasına hoş geldin! İlk dersini seç ve öğrenmeye baş."</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderQuiz() {
+            const course = courses[state.currentCourseIndex];
+            const question = course.questions[state.currentQuestionIndex];
+            const progressPercent = ((state.currentQuestionIndex) / course.questions.length) * 100;
+
+            app.innerHTML = `
+                <div class="flex flex-col h-full">
+                    <!-- Header -->
+                    <div class="flex items-center space-x-4 mb-8">
+                        <button onclick="goHome()" class="text-gray-400 hover:text-gray-600 font-bold text-2xl">✕</button>
+                        <div class="flex-grow bg-gray-200 rounded-full h-4 overflow-hidden">
+                            <div class="progress-bar bg-green-500 h-full" style="width: ${progressPercent}%"></div>
+                        </div>
+                        <div class="flex items-center space-x-1 text-red-500 font-bold">
+                            <span>❤️</span>
+                            <span>${state.health}</span>
+                        </div>
+                    </div>
+
+                    <!-- Question Section -->
+                    <div class="flex-grow">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-8">${question.question}</h2>
+                        
+                        <div class="space-y-4">
+                            ${question.options.map((option, idx) => `
+                                <div onclick="selectOption(${idx})" 
+                                     id="option-${idx}"
+                                     class="duo-card cursor-pointer border-2 border-gray-200 rounded-2xl p-4 font-semibold text-lg hover:bg-gray-50 transition-all ${state.selectedOption === idx ? 'border-blue-400 bg-blue-50 text-blue-600 ring-2 ring-blue-400' : 'text-gray-600'} ${state.isAnswerChecked && idx === question.answer ? 'correct-card' : ''} ${state.isAnswerChecked && state.selectedOption === idx && !state.isCorrect ? 'wrong-card' : ''}">
+                                    <span class="mr-3 border-2 rounded-lg px-2 py-0.5 text-sm">${idx + 1}</span>
+                                    ${option}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Footer Controls -->
+                    <div class="mt-8 border-t-2 pt-6">
+                        ${!state.isAnswerChecked ? `
+                            <button onclick="checkAnswer()" 
+                                    class="w-full py-4 bg-green-500 text-white font-extrabold rounded-2xl shadow-[0_4px_0_#45a049] hover:bg-green-400 active:translate-y-1 active:shadow-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    ${state.selectedOption === null ? 'disabled' : ''}>
+                                KONTROL ET
+                            </button>
+                        ` : `
+                            <div class="rounded-2xl p-6 ${state.isCorrect ? 'bg-green-100' : 'bg-red-100'} flex items-center justify-between animate-bounce-short">
+                                <div>
+                                    <h4 class="font-extrabold text-xl ${state.isCorrect ? 'text-green-700' : 'text-red-700'}">
+                                        ${state.isCorrect ? 'Aferin!' : 'Tüh, Yanlış!'}
+                                    </h4>
+                                    <p class="${state.isCorrect ? 'text-green-600' : 'text-red-600'} font-medium">
+                                        ${state.isCorrect ? 'Hızla öğreniyorsun.' : 'Doğru cevap: ' + question.options[question.answer]}
+                                    </p>
+                                </div>
+                                <button onclick="nextQuestion()" class="py-3 px-8 ${state.isCorrect ? 'bg-green-500 shadow-[0_4px_0_#45a049]' : 'bg-red-500 shadow-[0_4px_0_#cc3333]'} text-white font-extrabold rounded-2xl">
+                                    DEVAM ET
+                                </button>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderResult() {
+            const course = courses[state.currentCourseIndex];
+            const isSuccess = state.health > 0;
+
+            app.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-center py-10">
+                    <div class="text-8xl mb-6">${isSuccess ? '🏆' : '💔'}</div>
+                    <h2 class="text-3xl font-extrabold text-gray-800 mb-4">
+                        ${isSuccess ? 'Bölüm Tamamlandı!' : 'Canların Bitti!'}
+                    </h2>
+                    <p class="text-xl text-gray-600 mb-8">
+                        ${isSuccess ? 'Harika iş çıkardın, yeni bölüme hazırsın.' : 'Üzülme, tekrar deneyerek öğrenebilirsin.'}
+                    </p>
+                    
+                    <div class="grid grid-cols-2 gap-4 w-full max-w-sm mb-12">
+                        <div class="bg-white border-2 border-orange-200 rounded-2xl p-4">
+                            <span class="block text-2xl">🔥</span>
+                            <span class="block font-bold text-orange-500">${state.streak} Gün</span>
+                            <span class="text-xs text-gray-400">SERİ</span>
+                        </div>
+                        <div class="bg-white border-2 border-blue-200 rounded-2xl p-4">
+                            <span class="block text-2xl">🎯</span>
+                            <span class="block font-bold text-blue-500">%100</span>
+                            <span class="text-xs text-gray-400">BAŞARI</span>
+                        </div>
+                    </div>
+
+                    <button onclick="goHome()" class="w-full max-w-sm py-4 bg-blue-500 text-white font-extrabold rounded-2xl shadow-[0_4px_0_#2b78c5] hover:bg-blue-400 active:translate-y-1 active:shadow-none transition-all">
+                        ANA SAYFAYA DÖN
+                    </button>
+                </div>
+            `;
+        }
+
+        window.startCourse = function(index) {
+            state.currentCourseIndex = index;
+            state.currentQuestionIndex = 0;
+            state.health = 5;
+            state.screen = 'quiz';
+            state.isAnswerChecked = false;
+            state.selectedOption = null;
+            render();
+        };
+
+        window.goHome = function() {
+            state.screen = 'home';
+            render();
+        };
+
+        window.selectOption = function(idx) {
+            if (state.isAnswerChecked) return;
+            state.selectedOption = idx;
+            render();
+        };
+
+        window.checkAnswer = function() {
+            const course = courses[state.currentCourseIndex];
+            const question = course.questions[state.currentQuestionIndex];
+            
+            state.isAnswerChecked = true;
+            state.isCorrect = state.selectedOption === question.answer;
+
+            if (!state.isCorrect) {
+                state.health--;
+                // Hata olduğunda sallanma efekti
+                document.getElementById('app').classList.add('shake');
+                setTimeout(() => document.getElementById('app').classList.remove('shake'), 500);
+            }
+
+            render();
+        };
+
+        window.nextQuestion = function() {
+            const course = courses[state.currentCourseIndex];
+            
+            if (state.health <= 0) {
+                state.screen = 'result';
+            } else if (state.currentQuestionIndex < course.questions.length - 1) {
+                state.currentQuestionIndex++;
+                state.isAnswerChecked = false;
+                state.selectedOption = null;
+            } else {
+                state.screen = 'result';
+                state.streak++;
+            }
+            render();
+        };
+
+        window.onload = render;
+    </script>
+</body>
+</html>
